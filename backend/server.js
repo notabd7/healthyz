@@ -31,8 +31,15 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Chat history
+// Chat history and patient history
 let chatHistory = [];
+let patientHistory = {};
+
+// New endpoint to set patient history
+app.post('/api/set-patient-history', (req, res) => {
+  patientHistory = req.body;
+  res.status(200).json({ message: 'Patient history set successfully' });
+});
 
 app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
   try {
@@ -74,6 +81,10 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
       {
         role: "system",
         content: "You are a helpful medical assistant. People come to you with their medical issues. Your job is to use their medical history and description of what they are feeling to ask smart follow up questions, you have to ask one question at a time and carefully think about what question to ask next, to accurately diagnose what is wrong, when the user says end chat you are to generate notes for the doctor, sharing your precise summary of the patients account and question answer session",
+      },
+      {
+        role: "system",
+        content: `Patient History: ${JSON.stringify(patientHistory)}, in your questions and summary for the patient make sure you take in account their medical history and other information you have about them, your questions should be accurate, also address them by their first name ${patientHistory.firstName}`,
       },
       ...chatHistory,
       { role: "user", content: translatedText },

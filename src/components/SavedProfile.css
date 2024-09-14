@@ -3,12 +3,13 @@
     height: 100vh;
     padding: 20px;
     box-sizing: border-box;
-    position: relative;
 }
 
 .left-section {
     flex: 1;
     padding-right: 20px;
+    display: flex;
+    flex-direction: column;
 }
 
 .right-section {
@@ -42,7 +43,7 @@
 
 .chat-message.user {
     align-self: flex-end;
-    background-color: darkmagenta;
+    background-color: #9966ff;
     color: white;
 }
 
@@ -58,7 +59,7 @@
 }
 
 .microphone-section {
-    position: absolute;
+    position: fixed;
     bottom: 20px;
     left: 20px;
     display: flex;
@@ -74,9 +75,6 @@
 
 .start-chat-text {
     margin-top: 10px;
-    font-size: 15px;
-    font-weight: bold;
-    color: black;
 }
 
 .saved-profile-card,
@@ -86,6 +84,44 @@
     border-radius: 10px;
     padding: 15px;
     margin-bottom: 20px;
+}
+
+.saved-profile-card {
+    text-align: left;
+}
+
+.profile-title {
+    margin-bottom: 20px;
+
+}
+
+.saved-profile-card {
+    background-color: #f8f0ff;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.saved-profile-card h2, .saved-profile-card h3 {
+    color: #6200ee;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.saved-profile-card p {
+    margin-bottom: 10px;
+}
+
+.saved-profile-card ul {
+    margin-top: 5px;
+    margin-bottom: 15px;
+    padding-left: 20px;
+}
+
+.saved-profile-card li {
+    margin-bottom: 5px;
 }
 
 /* Add any additional styles for your existing elements */

@@ -5,19 +5,26 @@ import './SavedProfile.css';
 const SavedProfile = () => {
   const [profile, setProfile] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [transcribedText, setTranscribedText] = useState('');
-  const [translatedText, setTranslatedText] = useState('');
+
   const [chatHistory, setChatHistory] = useState([]);
   const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef(null);
+  const audioChunksRef = useRef([]);
   const chatContainerRef = useRef(null);
+  const isFirstInteractionRef = useRef(true);
 
   useEffect(() => {
     const savedProfile = JSON.parse(localStorage.getItem('healthProfile'));
+    console.log(savedProfile);
     const clientInfo = JSON.parse(localStorage.getItem('clientInfo'));
     if (savedProfile && clientInfo) {
-      setProfile({ ...savedProfile, ...clientInfo });
+      const combinedProfile = { ...savedProfile, ...clientInfo };
+      setProfile(combinedProfile);
+      
+      // Send the profile to the server
+      sendProfileToServer(combinedProfile);
     }
+    // Initialize chat with AI's first question
+    setChatHistory([{ type: 'assistant', text: "How are you doing today?"}]);
   }, []);
 
   useEffect(() => {
@@ -68,7 +75,7 @@ const SavedProfile = () => {
     formData.append('audio', audioBlob, 'recording.wav');
 
     try {
-      const response = await fetch('http://localhost:3001/api/transcribe-and-chat', {
+      const response = await fetch('http://localhost:3001/api/transcribe', {
         method: 'POST',
         body: formData,
       });
@@ -78,13 +85,16 @@ const SavedProfile = () => {
       }
 
       const data = await response.json();
-      setTranscribedText(data.transcription);
-      setTranslatedText(data.translation);
+      
+
+      // Update chat history with user's response first, then AI's question
       setChatHistory(prevHistory => [
         ...prevHistory,
-        { type: 'assistant', text: data.assistantResponse },
-        { type: 'user', text: data.translation }
+        { type: 'user', text: data.translation },
+        { type: 'assistant', text: data.assistantResponse }
       ]);
+
+      isFirstInteractionRef.current = false;
     } catch (error) {
       console.error('Error:', error);
       setChatHistory(prevHistory => [
@@ -94,50 +104,92 @@ const SavedProfile = () => {
     }
   };
 
+  const sendProfileToServer = async (profileData) => {
+    try {
+      const response = await fetch('http://localhost:3001/api/set-patient-history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(profileData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send profile to server');
+      }
+
+      console.log('Profile sent to server successfully');
+    } catch (error) {
+      console.error('Error sending profile to server:', error);
+    }
+  };
+
   if (!profile) {
     return <div className="saved-profile-card">No saved profile found.</div>;
   }
 
+  const renderBulletPoints = (items) => {
+    if (!items) return null;
+    const itemList = Array.isArray(items) ? items : items.split(', ');
+    return (
+      <ul>
+        {itemList.map((item, index) => (
+          <li key={index}>{item}</li>
+        ))}
+      </ul>
+    );
+  };
+
   return (
     <div className="saved-profile-container">
-    <div className="left-section">
-      <div className="microphone-section">
-        <img 
-          src="/Microphone.png" 
-          alt="Microphone" 
-          className="microphone-image"
-          onClick={handleMicrophoneClick}
-          role="button"
-          tabIndex={0}
-        />
-        <p className="start-chat-text">
-          {isRecording ? 'Recording...' : 'Start Chat...'}
-        </p>
-      </div>
-
-      <div className="saved-profile-card">
-        <h2>Saved Profile</h2>
-        <p><strong>Name:</strong> {profile.name}</p>
-        <p><strong>Age:</strong> {profile.age}</p>
-        <p><strong>Gender:</strong> {profile.gender}</p>
-        <p><strong>Height:</strong> {profile.height}</p>
-        <p><strong>Weight:</strong> {profile.weight}</p>
-        <p><strong>Medical History:</strong> {profile.medicalHistory}</p>
-        <p><strong>Current Medications:</strong> {profile.currentMedications}</p>
-        <p><strong>Allergies:</strong> {profile.allergies}</p>
-      </div>
-      {transcribedText && (
-          <div className="transcribed-text">
-            <h3>Transcribed:</h3>
-            <p>{transcribedText}</p>
-          </div>
-        )}
-        {translatedText && (
-          <div className="translated-text">
-            <h3>Translated:</h3>
-            <p>{translatedText}</p>
-          </div>
-        )}
+      <div className="left-section">
+        <div className="microphone-section">
+          <img 
+            src="/Microphone.png" 
+            alt="Microphone" 
+            className="microphone-image"
+            onClick={handleMicrophoneClick}
+            role="button"
+            tabIndex={0}
+          />
+          <p className="start-chat-text">
+            {isRecording ? 'Recording...' : 'Start Chat...'}
+          </p>
+        </div>
+        <div className="saved-profile-card">
+          <h2>Saved Profile</h2>
+          <p><strong>Name:</strong> {profile.firstName} {profile.lastName}</p>
+          <p><strong>Age:</strong> {profile.age}</p>
+          <p><strong>Gender:</strong> {profile.gender}</p>
+          <p><strong>Height:</strong> {profile.height} cm</p>
+          <p><strong>Weight:</strong> {profile.weight} kg</p>
+          <p><strong>Blood Type:</strong> {profile.bloodType}</p>
+          <p><strong>Children:</strong> {profile.children}</p>
+          
+          <h3>Medical History</h3>
+          <p><strong>Family History:</strong></p>
+          {renderBulletPoints(profile.familyHistory)}
+          
+          <p><strong>Infectious Areas Visited:</strong></p>
+          {renderBulletPoints(profile.infectiousAreas)}
+          
+          <p><strong>Sexual Activity:</strong> {profile.sexualActivity}</p>
+          
+          <p><strong>Alcohol Consumption:</strong> {profile.alcohol}</p>
+          
+          <p><strong>Tobacco Use:</strong> {profile.tobacco}</p>
+          
+          <p><strong>Chronic Conditions:</strong></p>
+          {renderBulletPoints(profile.chronicConditions)}
+          
+          <p><strong>Allergies:</strong></p>
+          {renderBulletPoints(profile.allergies)}
+          
+          <p><strong>Surgeries:</strong></p>
+          {renderBulletPoints(profile.surgeries)}
+          
+          <p><strong>Recent Changes:</strong> {profile.recentChanges}</p>
+        </div>
       </div>
       <div className="right-section">
         <div className="chat-container" ref={chatContainerRef}>
@@ -151,4 +203,5 @@ const SavedProfile = () => {
     </div>
   );
 };
+
 export default SavedProfile;
