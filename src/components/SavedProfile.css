@@ -1,0 +1,91 @@
+.saved-profile-container {
+    display: flex;
+    height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.left-section {
+    flex: 1;
+    padding-right: 20px;
+}
+
+.right-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-container {
+    background-color:white;
+    border-radius: 10px;
+    padding: 20px;
+    height: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.chat-message {
+    max-width: 80%;
+    padding: 10px 15px;
+    border-radius: 20px;
+    animation: pop-in 0.3s ease-out;
+}
+
+.chat-message.assistant {
+    align-self: flex-start;
+    background-color: #d4b3ff;
+}
+
+.chat-message.user {
+    align-self: flex-end;
+    background-color: #d4b3ff;
+    color: white;
+}
+
+@keyframes pop-in {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.microphone-section {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.microphone-image {
+    width: 80px;
+    height: 80px;
+    cursor: pointer;
+}
+
+.start-chat-text {
+    margin-top: 10px;
+    font-size: 15px;
+    font-weight: bold;
+    color: black;
+}
+
+.saved-profile-card,
+.transcribed-text,
+.translated-text {
+    background-color: #f8f0ff;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+/* Add any additional styles for your existing elements */
