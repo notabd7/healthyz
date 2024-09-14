@@ -9,7 +9,7 @@ const SavedProfile = () => {
   const [translatedText, setTranslatedText] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
+  const audioChunksRef = useRef(null);
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
@@ -33,7 +33,6 @@ const SavedProfile = () => {
       stopRecording();
     }
   };
-
 
   const startRecording = async () => {
     try {
@@ -69,7 +68,7 @@ const SavedProfile = () => {
     formData.append('audio', audioBlob, 'recording.wav');
 
     try {
-      const response = await fetch('http://localhost:3001/api/transcribe', {
+      const response = await fetch('http://localhost:3001/api/transcribe-and-chat', {
         method: 'POST',
         body: formData,
       });
@@ -99,27 +98,23 @@ const SavedProfile = () => {
     return <div className="saved-profile-card">No saved profile found.</div>;
   }
 
-  if (!profile) {
-    return <div className="saved-profile-card">No saved profile found.</div>;
-  }
- 
-
   return (
-  <div className="saved-profile-container">
-      <div className="left-section">
-        <div className="microphone-section">
-          <img 
-            src="/microphone.png" 
-            alt="Microphone" 
-            className="microphone-image"
-            onClick={handleMicrophoneClick}
-            role="button"
-            tabIndex={0}
-          />
-          <p className="start-chat-text">
-            {isRecording ? 'Recording...' : 'Start Chat...'}
-          </p>
-        </div>
+    <div className="saved-profile-container">
+    <div className="left-section">
+      <div className="microphone-section">
+        <img 
+          src="/Microphone.png" 
+          alt="Microphone" 
+          className="microphone-image"
+          onClick={handleMicrophoneClick}
+          role="button"
+          tabIndex={0}
+        />
+        <p className="start-chat-text">
+          {isRecording ? 'Recording...' : 'Start Chat...'}
+        </p>
+      </div>
+
       <div className="saved-profile-card">
         <h2>Saved Profile</h2>
         <p><strong>Name:</strong> {profile.name}</p>
@@ -156,5 +151,4 @@ const SavedProfile = () => {
     </div>
   );
 };
-
 export default SavedProfile;

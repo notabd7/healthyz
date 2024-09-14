@@ -215,22 +215,26 @@ body, input, select, textarea, button {
 #clientInfoForm button:hover {
     background-color: darkmagenta;
 }
-
 #mainHeading {
     font-size: 40px;
     font-weight: bold;
     color: #8b008b;
     text-align: center;
-    margin-bottom: 5px;
+    margin-bottom: 0;
 }
 
-
+#logo {
+    display: block;
+    margin: 5px auto;
+    max-width: 100px;
+}
 
 #subHeading {
     font-size: 20px;
     font-weight: bold;
     color: #8b008b;
     text-align: center;
+    margin-top: 5px;
     margin-bottom: 5px;
 }
 

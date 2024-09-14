@@ -33,7 +33,6 @@ const openai = new OpenAI({
 
 // Chat history
 let chatHistory = [];
-let patientHistory = [];
 
 app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
   try {
@@ -49,8 +48,6 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
       file: audioFile,
       model: "whisper-1",
     });
-
-    const patientMedicalHistory = req.body.medicalHistory || [];
 
     console.log('Transcription result:', transcript.text);
 
@@ -79,7 +76,6 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
         content: "You are a helpful medical assistant. People come to you with their medical issues. Your job is to use their medical history and description of what they are feeling to ask smart follow up questions, you have to ask one question at a time and carefully think about what question to ask next, to accurately diagnose what is wrong, when the user says end chat you are to generate notes for the doctor, sharing your precise summary of the patients account and question answer session",
       },
       ...chatHistory,
-      ...patientMedicalHistory.map(entry => ({ role: "system", content: `Medical History: ${entry}` })),
       { role: "user", content: translatedText },
     ];
 
