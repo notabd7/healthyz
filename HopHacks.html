@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Profile</title>
+    <script>
+        function showQuestion(pageNumber) {
+            const pages = document.querySelectorAll('.page');
+            pages.forEach((p, index) => {
+                p.style.display = index === pageNumber ? 'block' : 'none';
+            });
+            document.getElementById('pageNumber').textContent = `${pageNumber + 1} / ${totalPages}`;
+            
+            // Show/hide navigation buttons
+            document.getElementById('prevButton').style.display = pageNumber > 0 ? 'inline-block' : 'none';
+            document.getElementById('nextButton').style.display = pageNumber < totalPages - 1 ? 'inline-block' : 'none';
+            document.getElementById('saveButton').style.display = pageNumber === totalPages - 1 ? 'inline-block' : 'none';
+        }
+
+        function nextQuestion() {
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+                showQuestion(currentPage);
+            }
+        }
+
+        function prevQuestion() {
+            if (currentPage > 0) {
+                currentPage--;
+                showQuestion(currentPage);
+            }
+        }
+
+        // Modify the saveClientInfo function
+        async function saveClientInfo() {
+            const firstName = document.getElementById('firstNameInput').value;
+            
+            try {
+                const response = await fetch('http://localhost:3000/saveClientInfo', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ firstName }),
+                });
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('clientInfoForm').style.display = 'none';
+                    document.getElementById('profileForm').style.display = 'block';
+
+                    // Update the title and main heading with the client's first name
+                    document.title = `${firstName}'s Profile`;
+                    document.getElementById('mainHeading').textContent = `${firstName}'s Profile`;
+                } else {
+                    console.error('Error saving client info:', data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Modify the window.onload function
+        window.onload = function() {
+            document.getElementById('clientInfoForm').style.display = 'block';
+            document.getElementById('profileForm').style.display = 'none';
+
+            // Comment out or remove the code that checks for saved client info
+            /*
+            const savedClientInfo = JSON.parse(localStorage.getItem('clientInfo'));
+            if (savedClientInfo) {
+                document.getElementById('clientInfoForm').style.display = 'none';
+                document.getElementById('profileForm').style.display = 'block';
+                
+                // Update the title and main heading with the saved client's name
+                document.title = `${savedClientInfo.name}'s Profile`;
+                document.getElementById('mainHeading').textContent = `${savedClientInfo.name}'s Profile`;
+            } else {
+                document.getElementById('clientInfoForm').style.display = 'block';
+                document.getElementById('profileForm').style.display = 'none';
+            }
+            */
+
+            // Comment out or remove the auto-loading of saved profile data
+            /*
+            const savedProfile = JSON.parse(localStorage.getItem('healthProfile'));
+            if (savedProfile) {
+                document.getElementById('ageInput').value = savedProfile.age || '';
+                document.getElementById('weightInput').value = savedProfile.weight || '';
+                document.getElementById('heightInput').value = savedProfile.height || '';
+                document.getElementById('genderInput').value = savedProfile.gender || '';
+                document.getElementById('childrenInput').value = savedProfile.children || '';
+                document.getElementById('allergiesInput').value = savedProfile.allergies || '';
+                document.getElementById('chronicConditionsInput').value = savedProfile.chronicConditions || '';
+                document.getElementById('tobaccoInput').value = savedProfile.tobacco || '';
+                document.getElementById('alcoholInput').value = savedProfile.alcohol || '';
+                if (savedProfile.surgeries) {
+                    const surgeries = savedProfile.surgeries.split(', ');
+                    surgeries.forEach(surgery => {
+                        const checkbox = document.querySelector(`input[name="surgeries"][value="${surgery}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                }
+                if (savedProfile.familyHistory) {
+                    const familyHistory = savedProfile.familyHistory.split(', ');
+                    familyHistory.forEach(condition => {
+                        const checkbox = document.querySelector(`input[name="familyHistory"][value="${condition}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                }
+                document.getElementById('recentChangesInput').value = savedProfile.recentChanges || '';
+                document.getElementById('infectiousAreas').value = savedProfile.infectiousAreas || '';
+                document.getElementById('sexualActivityInput').value = savedProfile.sexualActivity || '';
+                document.getElementById('result').textContent = 'Profile loaded from storage.';
+                
+                // Populate the saved data
+                populateProfile(savedProfile);
+            }
+            */
+
+            showQuestion(0); // Show the first question
+        }
+
+        function saveProfile() {
+            const profile = {
+                age: document.getElementById('ageInput').value,
+                weight: document.getElementById('weightInput').value,
+                bloodType: document.getElementById('bloodTypeInput').value,
+                height: document.getElementById('heightInput').value,
+                gender: document.getElementById('genderInput').value,
+                children: document.getElementById('childrenInput').value,
+                allergies: document.getElementById('allergiesInput').value,
+                chronicConditions: document.getElementById('chronicConditionsInput').value,
+                tobacco: document.getElementById('tobaccoInput').value,
+                alcohol: document.getElementById('alcoholInput').value,
+                surgeries: Array.from(document.querySelectorAll('input[name="surgeries"]:checked')).map(el => el.value).join(', '),
+                familyHistory: Array.from(document.querySelectorAll('input[name="familyHistory"]:checked')).map(el => el.value).join(', '),
+                recentChanges: document.getElementById('recentChangesInput').value,
+                infectiousAreas: document.getElementById('infectiousAreas').value,
+                sexualActivity: document.getElementById('sexualActivityInput').value
+            };
+
+            localStorage.setItem('healthProfile', JSON.stringify(profile));
+            document.getElementById('result').textContent = 'Profile saved successfully!';
+            
+            // Populate the saved data
+            populateProfile(profile);
+
+            showQuestion(0); // Reset to the first question after saving
+        }
+
+        function populateProfile(profile) {
+            document.getElementById('profileForm').style.display = 'none';
+            document.getElementById('savedProfile').style.display = 'block';
+            document.getElementById('savedAge').textContent = profile.age || 'Not provided';
+            document.getElementById('savedWeight').textContent = profile.weight || 'Not provided';
+            document.getElementById('savedBloodType').textContent = profile.bloodType || 'Not provided';
+            document.getElementById('savedHeight').textContent = profile.height || 'Not provided';
+            document.getElementById('savedGender').textContent = profile.gender || 'Not provided';
+            document.getElementById('savedChildren').textContent = profile.children || 'Not provided';
+            document.getElementById('savedAllergies').textContent = profile.allergies || 'Not provided';
+            document.getElementById('savedChronicConditions').textContent = profile.chronicConditions || 'Not provided';
+            document.getElementById('savedTobacco').textContent = profile.tobacco || 'Not provided';
+            document.getElementById('savedAlcohol').textContent = profile.alcohol || 'Not provided';
+            document.getElementById('savedSurgeries').textContent = profile.surgeries || 'None';
+            document.getElementById('savedFamilyHistory').textContent = profile.familyHistory || 'None';
+            document.getElementById('savedRecentChanges').textContent = profile.recentChanges || 'Not provided';
+            document.getElementById('savedInfectiousAreas').textContent = profile.infectiousAreas || 'Not provided';
+            document.getElementById('savedSexualActivity').textContent = profile.sexualActivity || 'Not provided';
+
+            // Populate Visit Summary
+            document.getElementById('summaryName').textContent = `${document.getElementById('firstNameInput').value} ${document.getElementById('lastNameInput').value}`;
+            document.getElementById('summaryAge').textContent = profile.age || 'Not provided';
+            document.getElementById('summaryGender').textContent = profile.gender || 'Not provided';
+            document.getElementById('summaryPhone').textContent = document.getElementById('phoneInput').value || 'Not provided';
+            document.getElementById('summaryAddress').textContent = document.getElementById('addressInput').value || 'Not provided';
+            document.getElementById('summaryWeight').textContent = profile.weight || 'Not provided';
+            document.getElementById('summaryBloodType').textContent = profile.bloodType || 'Not provided';
+            document.getElementById('summaryHeight').textContent = profile.height || 'Not provided';
+            document.getElementById('summaryAllergies').textContent = profile.allergies || 'None';
+            document.getElementById('summaryChronicConditions').textContent = profile.chronicConditions || 'None';
+            document.getElementById('summarySurgeries').textContent = profile.surgeries || 'None';
+            document.getElementById('summaryFamilyHistory').textContent = profile.familyHistory || 'None';
+        }
+
+        function showForm() {
+            document.getElementById('profileForm').style.display = 'block';
+            document.getElementById('savedProfile').style.display = 'none';
+        }
+
+        function showVisitSummary() {
+            document.getElementById('savedProfile').style.display = 'none';
+            document.getElementById('visitSummary').style.display = 'block';
+        }
+    </script>
+    <style>
+        .page {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .question {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .question:hover {
+            transform: translateY(-5px);
+        }
+
+        .question label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .question input[type="text"],
+        .question input[type="number"],
+        .question select,
+        .question textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        #navigation {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        #navigation button {
+            padding: 10px 20px;
+            margin: 5px;
+            background-color: DarkMagenta;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #navigation button:hover {
+            background-color: #8B008B; /* A slightly lighter shade of DarkMagenta for hover effect */
+        }
+
+        #pageNumber {
+            margin-top: 20px;
+            text-align: center;
+            font-style: italic;
+            color: #666;
+        }
+
+        .tab-content {
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            overflow: hidden;
+        }
+
+        .tab-content h3 {
+            margin-top: 0;
+            color: white;
+            background-color: darkmagenta;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+        }
+
+        .tab-content p {
+            margin: 5px 0;
+            padding: 0 15px 15px;
+        }
+
+        .popup {
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .popup-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #clickableImage {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        .microphone-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: DarkMagenta;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .microphone-button img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #clientInfoForm {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        #clientInfoForm input[type="text"],
+        #clientInfoForm input[type="tel"],
+        #clientInfoForm textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        #clientInfoForm input[type="text"]:focus,
+        #clientInfoForm input[type="tel"]:focus,
+        #clientInfoForm textarea:focus {
+            border-color: DarkMagenta;
+            box-shadow: 0 0 5px rgba(139, 0, 139, 0.5);
+            outline: none;
+        }
+
+        #clientInfoForm button {
+            width: 100%;
+            padding: 10px;
+            background-color: DarkMagenta;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #clientInfoForm button:hover {
+            background-color: #8B008B;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="mainHeading">Client's Profile</h1>
+    <div id="clientInfoForm">
+        <h2>Information</h2>
+        <form>
+            <label for="firstNameInput">First Name:</label>
+            <input type="text" id="firstNameInput" required><br><br>
+
+            <label for="lastNameInput">Last Name:</label>
+            <input type="text" id="lastNameInput" required><br><br>
+
+            <label for="phoneInput">Phone:</label>
+            <input type="tel" id="phoneInput" required><br><br>
+
+            <label for="addressInput">Address:</label>
+            <textarea id="addressInput" rows="3" required></textarea><br><br>
+
+            <button type="button" onclick="saveClientInfo()">Continue</button>
+        </form>
+    </div>
+
+    <div id="profileForm" style="display: none;">
+        <form>
+            <div class="page">
+                <div class="question">
+                    <label for="ageInput">How old are you?</label>
+                    <input type="number" id="ageInput" min="0">
+                </div>
+
+                <div class="question">
+                    <label for="weightInput">How much do you weigh (kg)?</label>
+                    <input type="number" id="weightInput" min="0" step="0.1">
+                </div>
+
+                <div class="question">
+                    <label for="bloodTypeInput">What is your blood type?</label>
+                    <select id="bloodTypeInput">
+                        <option value="">Select an option</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                        <option value="Unknown">Unknown</option>
+                    </select>
+                </div>
+
+                <div class="question">
+                    <label for="heightInput">What is your height (cm)?</label>
+                    <input type="number" id="heightInput" min="0" step="0.1">
+                </div>
+
+                <div class="question">
+                    <label for="genderInput">What is your Gender?</label>
+                    <select id="genderInput">
+                        <option value="">Select an option</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="page">
+                <div class="question">
+                    <label for="childrenInput">Do you have any Children? If so, how many?</label>
+                    <input type="text" id="childrenInput">
+                </div>
+
+                <div class="question">
+                    <label for="allergiesInput">Do you have any allergies? If so, specify</label>
+                    <input type="text" id="allergiesInput">
+                </div>
+
+                <div class="question">
+                    <label for="chronicConditionsInput">Any Chronic Conditions?</label>
+                    <input type="text" id="chronicConditionsInput">
+                </div>
+
+                <div class="question">
+                    <label for="tobaccoInput">How often do you use tobacco?</label>
+                    <select id="tobaccoInput">
+                        <option value="">Select an option</option>
+                        <option value="Very Often">Very Often (daiy or multiple times a day)</option>
+                        <option value="Often">Often (a few times per week)</option>
+                        <option value="Rarely">Rarely (less than once a week)</option>
+                        <option value="Never">Never (don't use tobacco)</option>
+                    </select>
+                </div>
+
+                <div class="question">
+                    <label for="alcoholInput">How often do you drink alcohol?</label>
+                    <select id="alcoholInput">
+                        <option value="">Select an option</option>
+                        <option value="Very Often">Very Often (daily or almost daily)</option>
+                        <option value="Often">Often (1-3 times per week)</option>
+                        <option value="Rarely">Rarely (less than once a week)</option>
+                        <option value="Never">Never (don't drink alcohol)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="page">
+                <div class="question">
+                    <label>Do you have a history of any of the following?</label>
+                    <div class="checkbox-grid">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryBP" name="surgeries" value="High BP">
+                            <label for="surgeryBP">High BP</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryHeart" name="surgeries" value="Heart Problems">
+                            <label for="surgeryHeart">Heart Problems</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryStroke" name="surgeries" value="Stroke">
+                            <label for="surgeryStroke">Stroke</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryDiabetes" name="surgeries" value="Diabetes">
+                            <label for="surgeryDiabetes">Diabetes</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryCancer" name="surgeries" value="Cancer">
+                            <label for="surgeryCancer">Cancer</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryCOVID" name="surgeries" value="COVID-19">
+                            <label for="surgeryCOVID">COVID-19</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryNipah" name="surgeries" value="Nipah virus">
+                            <label for="surgeryNipah">Nipah virus</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryZika" name="surgeries" value="Zika virus">
+                            <label for="surgeryZika">Zika virus</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryHIV" name="surgeries" value="HIV/AIDS">
+                            <label for="surgeryHIV">HIV/AIDS</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryMalaria" name="surgeries" value="Malaria">
+                            <label for="surgeryMalaria">Malaria</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryAsthma" name="surgeries" value="Asthma">
+                            <label for="surgeryAsthma">Asthma</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryTB" name="surgeries" value="Tuberculosis">
+                            <label for="surgeryTB">Tuberculosis</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryOperation" name="surgeries" value="Operation">
+                            <label for="surgeryOperation">Operation</label>
+                        </div>
+                        <div class="checkbox-item">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Profile</title>
+    <script>
+        let currentPage = 0;
+        const totalPages = 3; // Now we have 3 pages
+
+        function showQuestion(pageNumber) {
+            const pages = document.querySelectorAll('.page');
+            pages.forEach((p, index) => {
+                p.style.display = index === pageNumber ? 'block' : 'none';
+            });
+            document.getElementById('pageNumber').textContent = `${pageNumber + 1} / ${totalPages}`;
+            
+            // Show/hide navigation buttons
+            document.getElementById('prevButton').style.display = pageNumber > 0 ? 'inline-block' : 'none';
+            document.getElementById('nextButton').style.display = pageNumber < totalPages - 1 ? 'inline-block' : 'none';
+            document.getElementById('saveButton').style.display = pageNumber === totalPages - 1 ? 'inline-block' : 'none';
+        }
+
+        function nextQuestion() {
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+                showQuestion(currentPage);
+            }
+        }
+
+        function prevQuestion() {
+            if (currentPage > 0) {
+                currentPage--;
+                showQuestion(currentPage);
+            }
+        }
+
+        // Modify the saveClientInfo function
+        function saveClientInfo() {
+            const firstName = document.getElementById('firstNameInput').value;
+            
+            document.getElementById('clientInfoForm').style.display = 'none';
+            document.getElementById('profileForm').style.display = 'block';
+
+            // Update the title and main heading with the client's first name
+            document.title = `${firstName}'s Profile`;
+            document.getElementById('mainHeading').textContent = `${firstName}'s Profile`;
+        }
+
+        // Modify the window.onload function
+        window.onload = function() {
+            document.getElementById('clientInfoForm').style.display = 'block';
+            document.getElementById('profileForm').style.display = 'none';
+
+            // Comment out or remove the code that checks for saved client info
+            /*
+            const savedClientInfo = JSON.parse(localStorage.getItem('clientInfo'));
+            if (savedClientInfo) {
+                document.getElementById('clientInfoForm').style.display = 'none';
+                document.getElementById('profileForm').style.display = 'block';
+                
+                // Update the title and main heading with the saved client's name
+                document.title = `${savedClientInfo.name}'s Profile`;
+                document.getElementById('mainHeading').textContent = `${savedClientInfo.name}'s Profile`;
+            } else {
+                document.getElementById('clientInfoForm').style.display = 'block';
+                document.getElementById('profileForm').style.display = 'none';
+            }
+            */
+
+            // Comment out or remove the auto-loading of saved profile data
+            /*
+            const savedProfile = JSON.parse(localStorage.getItem('healthProfile'));
+            if (savedProfile) {
+                document.getElementById('ageInput').value = savedProfile.age || '';
+                document.getElementById('weightInput').value = savedProfile.weight || '';
+                document.getElementById('heightInput').value = savedProfile.height || '';
+                document.getElementById('genderInput').value = savedProfile.gender || '';
+                document.getElementById('childrenInput').value = savedProfile.children || '';
+                document.getElementById('allergiesInput').value = savedProfile.allergies || '';
+                document.getElementById('chronicConditionsInput').value = savedProfile.chronicConditions || '';
+                document.getElementById('tobaccoInput').value = savedProfile.tobacco || '';
+                document.getElementById('alcoholInput').value = savedProfile.alcohol || '';
+                if (savedProfile.surgeries) {
+                    const surgeries = savedProfile.surgeries.split(', ');
+                    surgeries.forEach(surgery => {
+                        const checkbox = document.querySelector(`input[name="surgeries"][value="${surgery}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                }
+                if (savedProfile.familyHistory) {
+                    const familyHistory = savedProfile.familyHistory.split(', ');
+                    familyHistory.forEach(condition => {
+                        const checkbox = document.querySelector(`input[name="familyHistory"][value="${condition}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                }
+                document.getElementById('recentChangesInput').value = savedProfile.recentChanges || '';
+                document.getElementById('infectiousAreas').value = savedProfile.infectiousAreas || '';
+                document.getElementById('sexualActivityInput').value = savedProfile.sexualActivity || '';
+                document.getElementById('result').textContent = 'Profile loaded from storage.';
+                
+                // Populate the saved data
+                populateProfile(savedProfile);
+            }
+            */
+
+            showQuestion(0); // Show the first question
+        }
+
+        function saveProfile() {
+            const profile = {
+                age: document.getElementById('ageInput').value,
+                weight: document.getElementById('weightInput').value,
+                bloodType: document.getElementById('bloodTypeInput').value,
+                height: document.getElementById('heightInput').value,
+                gender: document.getElementById('genderInput').value,
+                children: document.getElementById('childrenInput').value,
+                allergies: document.getElementById('allergiesInput').value,
+                chronicConditions: document.getElementById('chronicConditionsInput').value,
+                tobacco: document.getElementById('tobaccoInput').value,
+                alcohol: document.getElementById('alcoholInput').value,
+                surgeries: Array.from(document.querySelectorAll('input[name="surgeries"]:checked')).map(el => el.value).join(', '),
+                familyHistory: Array.from(document.querySelectorAll('input[name="familyHistory"]:checked')).map(el => el.value).join(', '),
+                recentChanges: document.getElementById('recentChangesInput').value,
+                infectiousAreas: document.getElementById('infectiousAreas').value,
+                sexualActivity: document.getElementById('sexualActivityInput').value
+            };
+
+            localStorage.setItem('healthProfile', JSON.stringify(profile));
+            document.getElementById('result').textContent = 'Profile saved successfully!';
+            
+            // Populate the saved data
+            populateProfile(profile);
+
+            showQuestion(0); // Reset to the first question after saving
+        }
+
+        function populateProfile(profile) {
+            document.getElementById('profileForm').style.display = 'none';
+            document.getElementById('savedProfile').style.display = 'block';
+            document.getElementById('savedAge').textContent = profile.age || 'Not provided';
+            document.getElementById('savedWeight').textContent = profile.weight || 'Not provided';
+            document.getElementById('savedBloodType').textContent = profile.bloodType || 'Not provided';
+            document.getElementById('savedHeight').textContent = profile.height || 'Not provided';
+            document.getElementById('savedGender').textContent = profile.gender || 'Not provided';
+            document.getElementById('savedChildren').textContent = profile.children || 'Not provided';
+            document.getElementById('savedAllergies').textContent = profile.allergies || 'Not provided';
+            document.getElementById('savedChronicConditions').textContent = profile.chronicConditions || 'Not provided';
+            document.getElementById('savedTobacco').textContent = profile.tobacco || 'Not provided';
+            document.getElementById('savedAlcohol').textContent = profile.alcohol || 'Not provided';
+            document.getElementById('savedSurgeries').textContent = profile.surgeries || 'None';
+            document.getElementById('savedFamilyHistory').textContent = profile.familyHistory || 'None';
+            document.getElementById('savedRecentChanges').textContent = profile.recentChanges || 'Not provided';
+            document.getElementById('savedInfectiousAreas').textContent = profile.infectiousAreas || 'Not provided';
+            document.getElementById('savedSexualActivity').textContent = profile.sexualActivity || 'Not provided';
+
+            // Populate Visit Summary
+            document.getElementById('summaryName').textContent = `${document.getElementById('firstNameInput').value} ${document.getElementById('lastNameInput').value}`;
+            document.getElementById('summaryAge').textContent = profile.age || 'Not provided';
+            document.getElementById('summaryGender').textContent = profile.gender || 'Not provided';
+            document.getElementById('summaryPhone').textContent = document.getElementById('phoneInput').value || 'Not provided';
+            document.getElementById('summaryAddress').textContent = document.getElementById('addressInput').value || 'Not provided';
+            document.getElementById('summaryWeight').textContent = profile.weight || 'Not provided';
+            document.getElementById('summaryBloodType').textContent = profile.bloodType || 'Not provided';
+            document.getElementById('summaryHeight').textContent = profile.height || 'Not provided';
+            document.getElementById('summaryAllergies').textContent = profile.allergies || 'None';
+            document.getElementById('summaryChronicConditions').textContent = profile.chronicConditions || 'None';
+            document.getElementById('summarySurgeries').textContent = profile.surgeries || 'None';
+            document.getElementById('summaryFamilyHistory').textContent = profile.familyHistory || 'None';
+        }
+
+        function showForm() {
+            document.getElementById('profileForm').style.display = 'block';
+            document.getElementById('savedProfile').style.display = 'none';
+        }
+
+        function showVisitSummary() {
+            document.getElementById('savedProfile').style.display = 'none';
+            document.getElementById('visitSummary').style.display = 'block';
+        }
+    </script>
+    <style>
+        .page {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .question {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .question:hover {
+            transform: translateY(-5px);
+        }
+
+        .question label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .question input[type="text"],
+        .question input[type="number"],
+        .question select,
+        .question textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        #navigation {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        #navigation button {
+            padding: 10px 20px;
+            margin: 5px;
+            background-color: DarkMagenta;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #navigation button:hover {
+            background-color: #8B008B; /* A slightly lighter shade of DarkMagenta for hover effect */
+        }
+
+        #pageNumber {
+            margin-top: 20px;
+            text-align: center;
+            font-style: italic;
+            color: #666;
+        }
+
+        .tab-content {
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            overflow: hidden;
+        }
+
+        .tab-content h3 {
+            margin-top: 0;
+            color: white;
+            background-color: darkmagenta;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+        }
+
+        .tab-content p {
+            margin: 5px 0;
+            padding: 0 15px 15px;
+        }
+
+        .popup {
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .popup-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #clickableImage {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        .microphone-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: DarkMagenta;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .microphone-button img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #clientInfoForm {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        #clientInfoForm input[type="text"],
+        #clientInfoForm input[type="tel"],
+        #clientInfoForm textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        #clientInfoForm input[type="text"]:focus,
+        #clientInfoForm input[type="tel"]:focus,
+        #clientInfoForm textarea:focus {
+            border-color: DarkMagenta;
+            box-shadow: 0 0 5px rgba(139, 0, 139, 0.5);
+            outline: none;
+        }
+
+        #clientInfoForm button {
+            width: 100%;
+            padding: 10px;
+            background-color: DarkMagenta;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #clientInfoForm button:hover {
+            background-color: #8B008B;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="mainHeading">Client's Profile</h1>
+    <div id="clientInfoForm">
+        <h2>Information</h2>
+        <form>
+            <label for="firstNameInput">First Name:</label>
+            <input type="text" id="firstNameInput" required><br><br>
+
+            <label for="lastNameInput">Last Name:</label>
+            <input type="text" id="lastNameInput" required><br><br>
+
+            <label for="phoneInput">Phone:</label>
+            <input type="tel" id="phoneInput" required><br><br>
+
+            <label for="addressInput">Address:</label>
+            <textarea id="addressInput" rows="3" required></textarea><br><br>
+
+            <button type="button" onclick="saveClientInfo()">Continue</button>
+        </form>
+    </div>
+
+    <div id="profileForm" style="display: none;">
+        <form>
+            <div class="page">
+                <div class="question">
+                    <label for="ageInput">How old are you?</label>
+                    <input type="number" id="ageInput" min="0">
+                </div>
+
+                <div class="question">
+                    <label for="weightInput">How much do you weigh (kg)?</label>
+                    <input type="number" id="weightInput" min="0" step="0.1">
+                </div>
+
+                <div class="question">
+                    <label for="bloodTypeInput">What is your blood type?</label>
+                    <select id="bloodTypeInput">
+                        <option value="">Select an option</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                        <option value="Unknown">Unknown</option>
+                    </select>
+                </div>
+
+                <div class="question">
+                    <label for="heightInput">What is your height (cm)?</label>
+                    <input type="number" id="heightInput" min="0" step="0.1">
+                </div>
+
+                <div class="question">
+                    <label for="genderInput">What is your Gender?</label>
+                    <select id="genderInput">
+                        <option value="">Select an option</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="page">
+                <div class="question">
+                    <label for="childrenInput">Do you have any Children? If so, how many?</label>
+                    <input type="text" id="childrenInput">
+                </div>
+
+                <div class="question">
+                    <label for="allergiesInput">Do you have any allergies? If so, specify</label>
+                    <input type="text" id="allergiesInput">
+                </div>
+
+                <div class="question">
+                    <label for="chronicConditionsInput">Any Chronic Conditions?</label>
+                    <input type="text" id="chronicConditionsInput">
+                </div>
+
+                <div class="question">
+                    <label for="tobaccoInput">How often do you use tobacco?</label>
+                    <select id="tobaccoInput">
+                        <option value="">Select an option</option>
+                        <option value="Very Often">Very Often (daiy or multiple times a day)</option>
+                        <option value="Often">Often (a few times per week)</option>
+                        <option value="Rarely">Rarely (less than once a week)</option>
+                        <option value="Never">Never (don't use tobacco)</option>
+                    </select>
+                </div>
+
+                <div class="question">
+                    <label for="alcoholInput">How often do you drink alcohol?</label>
+                    <select id="alcoholInput">
+                        <option value="">Select an option</option>
+                        <option value="Very Often">Very Often (daily or almost daily)</option>
+                        <option value="Often">Often (1-3 times per week)</option>
+                        <option value="Rarely">Rarely (less than once a week)</option>
+                        <option value="Never">Never (don't drink alcohol)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="page">
+                <div class="question">
+                    <label>Do you have a history of any of the following?</label>
+                    <div class="checkbox-grid">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryBP" name="surgeries" value="High BP">
+                            <label for="surgeryBP">High BP</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryHeart" name="surgeries" value="Heart Problems">
+                            <label for="surgeryHeart">Heart Problems</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryStroke" name="surgeries" value="Stroke">
+                            <label for="surgeryStroke">Stroke</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryDiabetes" name="surgeries" value="Diabetes">
+                            <label for="surgeryDiabetes">Diabetes</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryCancer" name="surgeries" value="Cancer">
+                            <label for="surgeryCancer">Cancer</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryCOVID" name="surgeries" value="COVID-19">
+                            <label for="surgeryCOVID">COVID-19</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryNipah" name="surgeries" value="Nipah virus">
+                            <label for="surgeryNipah">Nipah virus</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryZika" name="surgeries" value="Zika virus">
+                            <label for="surgeryZika">Zika virus</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryHIV" name="surgeries" value="HIV/AIDS">
+                            <label for="surgeryHIV">HIV/AIDS</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryMalaria" name="surgeries" value="Malaria">
+                            <label for="surgeryMalaria">Malaria</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryAsthma" name="surgeries" value="Asthma">
+                            <label for="surgeryAsthma">Asthma</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryTB" name="surgeries" value="Tuberculosis">
+                            <label for="surgeryTB">Tuberculosis</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryOperation" name="surgeries" value="Operation">
+                            <label for="surgeryOperation">Operation</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryAccident" name="surgeries" value="Accident">
+                            <label for="surgeryAccident">Accident</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryHospitalization" name="surgeries" value="Hospitalization">
+                            <label for="surgeryHospitalization">Hospitalization</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryLiver" name="surgeries" value="Liver Disease">
+                            <label for="surgeryLiver">Liver Disease</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryMentalHealth" name="surgeries" value="Mental Health Issues">
+                            <label for="surgeryMentalHealth">Mental Health Issues</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryCholesterol" name="surgeries" value="Cholesterol Problems">
+                            <label for="surgeryCholesterol">Cholesterol Problems</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="surgeryOther" name="surgeries" value="Other">
+                            <label for="surgeryOther">Other</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="question">
+                    <label>Do you have a family history of any of the following?</label>
+                    <div class="checkbox-grid">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="familyHistoryBP" name="familyHistory" value="High BP">
+                            <label for="familyHistoryBP">High BP</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="familyHistoryHeart" name="familyHistory" value="Heart Disease">
+                            <label for="familyHistoryHeart">Heart Disease</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="familyHistoryStroke" name="familyHistory" value="Stroke">
+                            <label for="familyHistoryStroke">Stroke</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="familyHistoryDiabetes" name="familyHistory" value="Diabetes">
+                            <label for="familyHistoryDiabetes">Diabetes</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="familyHistoryCancer" name="familyHistory" value="Cancer">
+                            <label for="familyHistoryCancer">Cancer</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="familyHistoryCOVID" name="familyHistory" value="COVID-19">
+                            <label for="familyHistoryCOVID">COVID-19</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="familyHistoryNipah" name="familyHistory" value="Nipah virus">
+                            <label for="familyHistoryNipah">Nipah virus</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="familyHistoryZika" name="familyHistory" value="Zika virus">
+                            <label for="familyHistoryZika">Zika virus</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="familyHistoryHIV" name="familyHistory" value="HIV/AIDS">
+                            <label for="familyHistoryHIV">HIV/AIDS</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="familyHistoryMalaria" name="familyHistory" value="Malaria">
+                            <label for="familyHistoryMalaria">Malaria</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="familyHistoryAsthma" name="familyHistory" value="Asthma">
+                            <label for="familyHistoryAsthma">Asthma</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="familyHistoryTB" name="familyHistory" value="Tuberculosis">
+                            <label for="familyHistoryTB">Tuberculosis</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="familyHistoryOther" name="familyHistory" value="Other">
+                            <label for="familyHistoryOther">Other</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="question">
+                    <label for="recentChangesInput">Have you noticed any recent changes in weight, appetite, or energy levels?</label>
+                    <textarea id="recentChangesInput" rows="3" cols="50"></textarea>
+                </div>
+
+                <div class="question">
+                    <label for="infectiousAreas">Have you recently been to areas with infectious diseases (ex: malaria, dengue, etc)?</label>
+                    <select id="infectiousAreas" name="infectiousAreas">
+                        <option value="">Select an option</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
+
+                <div class="question">
+                    <label for="sexualActivityInput">Are you sexually active? If so, do you use protection?</label>
+                    <select id="sexualActivityInput">
+                        <option value="">Select an option</option>
+                        <option value="Yes, but do not use protection">Yes, but do not use protection</option>
+                        <option value="Yes, always use protection">Yes, always use protection (condoms, birth control, etc.)</option>
+                        <option value="Yes, sometimes use protection">Yes, sometimes use protection</option>
+                        <option value="Not sexually active">Not sexually active</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="navigation">
+                <button type="button" id="prevButton" onclick="prevQuestion()">Previous</button>
+                <button type="button" id="nextButton" onclick="nextQuestion()">Next</button>
+                <button type="button" id="saveButton" onclick="saveProfile()" style="display: none;">Save Profile</button>
+            </div>
+            <div id="pageNumber"></div>
+        </form>
+        <p id="result"></p>
+    </div>
+
+    <div id="savedProfile" style="display: none;">
+        <h2>Saved Profile</h2>
+        <p><strong>Age:</strong> <span id="savedAge"></span></p>
+        <p><strong>Weight:</strong> <span id="savedWeight"></span> kg</p>
+        <p><strong>Blood Type:</strong> <span id="savedBloodType"></span></p>
+        <p><strong>Height:</strong> <span id="savedHeight"></span> cm</p>
+        <p><strong>Gender:</strong> <span id="savedGender"></span></p>
+        <p><strong>Children:</strong> <span id="savedChildren"></span></p>
+        <p><strong>Allergies:</strong> <span id="savedAllergies"></span></p>
+        <p><strong>Chronic Conditions:</strong> <span id="savedChronicConditions"></span></p>
+        <p><strong>Tobacco Use:</strong> <span id="savedTobacco"></span></p>
+        <p><strong>Alcohol Consumption:</strong> <span id="savedAlcohol"></span></p>
+        <p><strong>Medical History:</strong> <span id="savedSurgeries"></span></p>
+        <p><strong>Family History:</strong> <span id="savedFamilyHistory"></span></p>
+        <p><strong>Recent Changes:</strong> <span id="savedRecentChanges"></span></p>
+        <p><strong>Recent visit to infectious areas:</strong> <span id="savedInfectiousAreas"></span></p>
+        <p><strong>Sexual Activity:</strong> <span id="savedSexualActivity"></span></p>
+        <button type="button" onclick="showForm()">Edit Profile</button>
+        <button type="button" onclick="showVisitSummary()">View Visit Summary</button>
+    </div>
+
+    <div id="visitSummary" style="display: none;">
+        <!-- Add this new section for the clickable image at the top -->
+        <div id="clickableImage">
+            <button onclick="openPopup()" class="microphone-button">
+                <img src="MicrophoneHopHacks.jpg" alt="Clickable Image">
+            </button>
+        </div>
+
+        <h2>Visit Summary</h2>
+
+        <div id="details" class="tab-content">
+            <h3>Visitor Details</h3>
+            <p><strong>Name:</strong> <span id="summaryName"></span></p>
+            <p><strong>Age:</strong> <span id="summaryAge"></span></p>
+            <p><strong>Gender:</strong> <span id="summaryGender"></span></p>
+            <p><strong>Phone:</strong> <span id="summaryPhone"></span></p>
+            <p><strong>Address:</strong> <span id="summaryAddress"></span></p>
+        </div>
+
+        <div id="vitals" class="tab-content">
+            <h3>Vitals</h3>
+            <p><strong>Weight:</strong> <span id="summaryWeight"></span> kg</p>
+            <p><strong>Blood Type:</strong> <span id="summaryBloodType"></span></p>
+            <p><strong>Height:</strong> <span id="summaryHeight"></span> cm</p>
+        </div>
+
+        <div id="history" class="tab-content">
+            <h3>Medical History</h3>
+            <p><strong>Allergies:</strong> <span id="summaryAllergies"></span></p>
+            <p><strong>Chronic Conditions:</strong> <span id="summaryChronicConditions"></span></p>
+            <p><strong>Surgeries:</strong> <span id="summarySurgeries"></span></p>
+            <p><strong>Family History:</strong> <span id="summaryFamilyHistory"></span></p>
+        </div>
+    </div>
+
+    <!-- Add this new div for the popup -->
+    <div id="imagePopup" class="popup" style="display: none;">
+        <div class="popup-content">
+            <span class="close" onclick="closePopup()">&times;</span>
+            <p>ADD THE SPEECH TO TEXT FUNCTIONALITY HERE</p>
+        </div>
+    </div>
+
+    <script>
+        function openPopup() {
+            document.getElementById("imagePopup").style.display = "block";
+        }
+
+        function closePopup() {
+            document.getElementById("imagePopup").style.display = "none";
+        }
+    </script>
+</body>
+</html>
