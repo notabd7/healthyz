@@ -1,25 +1,12 @@
-import logo from './logo.svg';
-import './App.css';
+import React from 'react';
+import { PDFViewer, Document, Page, Text } from '@react-pdf/renderer';
+import MyDocument from './pdf/MyDocument';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
-}
+
+const App = () => (
+  <PDFViewer style={{ width: '100vw', height: '100vh' }}>
+    <MyDocument />
+  </PDFViewer>
+);
 
 export default App;
