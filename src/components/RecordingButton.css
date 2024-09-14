@@ -1,0 +1,65 @@
+.custom-recording-container {
+    background-color: white;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 300px;
+    margin: auto;
+  }
+  
+  .custom-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .record-button {
+    background-color: #6f42c1; /* Purple color */
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 10px 20px;
+    margin: 10px;
+    transition: background-color 0.3s ease;
+  }
+  
+  .record-button:hover {
+    background-color: #5a2a8b; /* Darker purple on hover */
+  }
+  
+  .waveform-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100px;
+    background-color: #e9ecef;
+    border-radius: 5px;
+    margin-top: 10px;
+  }
+  
+  .waveform {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.3) 100%);
+  }
+  
+  .audio-preview {
+    margin-top: 20px;
+  }
+  
+  .reset-button {
+    background-color: #ffc107;
+    border: none;
+    border-radius: 5px;
+    color: black;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 5px 10px;
+    margin-top: 10px;
+  }

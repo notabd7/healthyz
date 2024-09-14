@@ -1,5 +1,6 @@
 import logo from './logo.svg';
 import React from 'react';
+import Recording_Button from './components/RecordingButton';
 import './App.css';
 
 function App() {
@@ -10,6 +11,7 @@ function App() {
         <p>
           Edit <code>src/App.js</code> and save to reload.
         </p>
+        <Recording_Button />
         <a
           className="App-link"
           href="https://reactjs.org"
