@@ -134,10 +134,10 @@ const SavedProfile = () => {
   };
 
   const sendAudioForProcessing = async (audioBlob) => {
-    const formData = new FormData();
-    formData.append('audio', audioBlob, 'recording.wav');
-
     try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.wav');
+
       const response = await fetch('http://localhost:3001/api/transcribe', {
         method: 'POST',
         body: formData,
@@ -149,7 +149,8 @@ const SavedProfile = () => {
 
       const data = await response.json();
 
-      if (data.translation.toLowerCase().includes('end chat')) {
+      // Check if data.translation exists before using toLowerCase()
+      if (data.translation && data.translation.toLowerCase().includes('end chat')) {
         setIsChatEnded(true);
         // Get the conclusion from the AI
         const conclusionResponse = await fetch('http://localhost:3001/api/get-conclusion', {
@@ -169,7 +170,7 @@ const SavedProfile = () => {
         // Add the conclusion to chat history
         setChatHistory(prevHistory => [
           ...prevHistory,
-          { type: 'user', text: data.translation },
+          { type: 'user', text: data.translation || data.transcription },
           { type: 'assistant', text: conclusionData.conclusion }
         ]);
 
@@ -179,16 +180,43 @@ const SavedProfile = () => {
         // Update chat history with user's response first, then AI's question
         setChatHistory(prevHistory => [
           ...prevHistory,
-          { type: 'user', text: data.translation },
+          { type: 'user', text: data.translation || data.transcription },
           { type: 'assistant', text: data.assistantResponse }
         ]);
       }
+
+      // Play the audio response with error handling
+      if (data.speechFile) {
+        const audioUrl = `http://localhost:3001/uploads/${data.speechFile}`;
+        const audio = new Audio(audioUrl);
+        
+        audio.onerror = (e) => {
+          console.error('Error loading audio:', e);
+          console.log('Audio URL:', audioUrl);
+          // Fallback to browser's text-to-speech if audio fails to load
+          const utterance = new SpeechSynthesisUtterance(data.assistantResponse);
+          speechSynthesis.speak(utterance);
+        };
+
+        audio.oncanplaythrough = () => {
+          audio.play().catch(e => {
+            console.error('Error playing audio:', e);
+            // Fallback to browser's text-to-speech if audio fails to play
+            const utterance = new SpeechSynthesisUtterance(data.assistantResponse);
+            speechSynthesis.speak(utterance);
+          });
+        };
+      } else {
+        console.warn('No speech file provided in the response');
+        // Use browser's text-to-speech as fallback
+        const utterance = new SpeechSynthesisUtterance(data.assistantResponse);
+        speechSynthesis.speak(utterance);
+      }
+
     } catch (error) {
-      console.error('Error:', error);
-      setChatHistory(prevHistory => [
-        ...prevHistory,
-        { type: 'assistant', text: 'Sorry, there was an error processing your speech.' }
-      ]);
+      console.error('Error processing audio:', error);
+    } finally {
+      setIsRecording(false);
     }
   };
 
@@ -335,9 +363,15 @@ const SavedProfile = () => {
         {isChatEnded && (
           <p className="chat-ended-message">Chat ended. Data has been saved.</p>
         )}
-        <button className="new-chat-button" onClick={handleNewChat}>
-          New Chat
-        </button>
+        <div className="new-chat-section">
+          <img
+            src="/picpic.png"
+            alt="New Chat"
+            className="new-chat-image"
+            onClick={handleNewChat}
+          />
+          <span className="new-chat-text">New Chat</span>
+        </div>
       </div>
     </div>
   );

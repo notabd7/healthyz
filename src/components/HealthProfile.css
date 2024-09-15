@@ -249,14 +249,14 @@ body, input, select, textarea, button {
     left: 20px;
     top: 20px;
     width: 250px;
-    background-color: #f0e6ff; /* Light purple color */
+    background-color: darkmagenta; /* Light purple color */
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .saved-profile h3 {
-    color: #4a0e4e; /* Darker purple for contrast */
+    color: #4ada0e4e; /* Darker purple for contrast */
     margin-top: 0;
     margin-bottom: 15px;
 }

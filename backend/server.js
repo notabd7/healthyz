@@ -5,11 +5,15 @@ const { OpenAI } = require('openai');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const { detect } = require('langdetect');
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3001;
+
+const inputVoice = "nova"; // https://platform.openai.com/docs/guides/text-to-speech/voice-options
+const inputModel = "tts-1"; 
 
 // Middleware
 app.use(cors());
@@ -35,6 +39,26 @@ const openai = new OpenAI({
 let chatHistory = [];
 let patientHistory = {};
 let pastAppointments = [];
+
+async function textToSpeech(text, voice) {
+  try {
+    const mp3 = await openai.audio.speech.create({
+      model: inputModel,
+      voice: voice,
+      input: text,
+      speed: 1.,
+    });
+
+    const buffer = Buffer.from(await mp3.arrayBuffer());
+    const fileName = `speech-${Date.now()}.mp3`;
+    await fs.promises.writeFile(path.join('uploads', fileName), buffer);
+
+    return fileName;
+  } catch (error) {
+    console.error('Error in text-to-speech:', error);
+    throw error;
+  }
+}
 
 // New endpoint to set patient history
 app.post('/api/set-patient-history', (req, res) => {
@@ -64,32 +88,18 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
 
     console.log('Transcription result:', transcript.text);
 
-    // Translate if necessary
-    const translationMessages = [
-      {
-        role: "system",
-        content: "You are a translator. The input is going to be in either of the three languages: Urdu, English, or Punjabi. Translate it to English. If it's already in English, simply repeat it.",
-      },
-      { role: "user", content: transcript.text },
-    ];
-
-    const translationResponse = await openai.chat.completions.create({
-      messages: translationMessages,
-      model: "gpt-4o-mini",
-    });
-
-    const translatedText = translationResponse.choices[0].message.content;
-
-    console.log('Translated text:', translatedText);
+    // Detect input language
+    const detectedLang = detect(transcript.text);
+    const languageCode = detectedLang[0].lang;
 
     // Chat with medical assistant
     const chatMessages = [
       {
         role: "system",
-        content: generateAIPrompt(patientHistory, pastAppointments, translatedText)
+        content: generateAIPrompt(patientHistory, pastAppointments, transcript.text)
       },
       ...chatHistory,
-      { role: "user", content: translatedText },
+      { role: "user", content: transcript.text },
     ];
 
     const chatResponse = await openai.chat.completions.create({
@@ -99,9 +109,28 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
 
     const assistantResponse = chatResponse.choices[0].message.content;
 
+    // Translate assistant response to the detected language
+    const translationMessages = [
+      {
+        role: "system",
+        content: `You are a translator. Translate the following text to ${languageCode}. Preserve any formatting or special characters.`,
+      },
+      { role: "user", content: assistantResponse },
+    ];
+
+    const translationResponse = await openai.chat.completions.create({
+      messages: translationMessages,
+      model: "gpt-4o-mini",
+    });
+
+    const translatedResponse = translationResponse.choices[0].message.content;
+
+    // Convert translated response to speech
+    const speechFile = await textToSpeech(translatedResponse, inputVoice);
+
     // Update chat history
     chatHistory.push(
-      { role: "user", content: translatedText },
+      { role: "user", content: transcript.text },
       { role: "assistant", content: assistantResponse }
     );
 
@@ -110,8 +139,9 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
 
     res.json({
       transcription: transcript.text,
-      translation: translatedText,
-      assistantResponse: assistantResponse
+      assistantResponse: assistantResponse,
+      translatedResponse: translatedResponse,
+      speechFile: speechFile
     });
 
   } catch (error) {
@@ -157,15 +187,18 @@ const generateAIPrompt = (patientHistory, pastAppointments, currentQuery) => {
     ${pastAppointments.map(app => `
       Date: ${app.time_stamp_created}
       Medical History: ${app.medical_history}
-      Question & Answer session with an Ai model: ${app.QnA}
+      Question & Answer session with an AI model: ${app.QnA}
       Conclusions of each session: ${app.conclusion}
     `).join('\n')}
 
     Current Query: ${currentQuery}
 
-    Based on this information, please ask specific diagnostic oriented questions aimed to narrow down and ultimately diagnose the patient's condition, you can stop after you have enough information to make a conclusion nut always ask at least 10 questions.
+    Based on this information, please ask specific diagnostic oriented questions aimed to narrow down and ultimately diagnose the patient's condition. Make sure you ask one question and then wait for the patient's response and use that answer in coming up with your next question, so you have fair data to reason with. You can stop after you have enough information to make a conclusion but always ask at least 10 questions. if there is a case where s patient is in a life and death situation and need urgent medical care give them advice that will maximize their chances of survival. If the user ends the chat in one way or the other print notes for thedoctor summarizing the conversation and the conclusion. the diagnosis and the question and answers you had.
   `;
 };
+
+// Serve static files from the 'uploads' directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
