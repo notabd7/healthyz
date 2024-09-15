@@ -1,31 +1,94 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+
 import './SavedProfile.css';
+
+import { createClient } from '@supabase/supabase-js';
+
+// Use REACT_APP_ prefix for environment variables:
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseKey = process.env.REACT_APP_SUPABASE_KEY;
+
+// ... rest of your code
+
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Supabase credentials are not set. Please check your environment variables.');
+}
+
 
 const SavedProfile = () => {
   const [profile, setProfile] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
-
   const [chatHistory, setChatHistory] = useState([]);
+  const [isChatEnded, setIsChatEnded] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const chatContainerRef = useRef(null);
-  const isFirstInteractionRef = useRef(true);
+  const [pastAppointments, setPastAppointments] = useState([]);
 
   useEffect(() => {
     const savedProfile = JSON.parse(localStorage.getItem('healthProfile'));
-    console.log(savedProfile);
     const clientInfo = JSON.parse(localStorage.getItem('clientInfo'));
     if (savedProfile && clientInfo) {
       const combinedProfile = { ...savedProfile, ...clientInfo };
       setProfile(combinedProfile);
       
+      // Fetch past appointments
+      fetchPastAppointments(combinedProfile);
+      
       // Send the profile to the server
       sendProfileToServer(combinedProfile);
     }
     // Initialize chat with AI's first question
-    setChatHistory([{ type: 'assistant', text: "How are you doing today?"}]);
+    setChatHistory([{ type: 'assistant', text: "How are you doing today?" }]);
   }, []);
+
+  const fetchPastAppointments = async (profile) => {
+    try {
+      const { data, error } = await supabase
+        .from('patients')
+        .select('appointments, time_stamp_created')
+        .eq('first_name', profile.firstName)
+        .eq('last_name', profile.lastName)
+        .eq('contact', profile.contactNumber)
+        .order('time_stamp_created', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedAppointments = data.map(item => ({
+        ...item.appointments,
+        time_stamp_created: item.time_stamp_created
+      }));
+
+      setPastAppointments(formattedAppointments);
+      
+      // Send past appointments to the server
+      sendPastAppointmentsToServer(formattedAppointments);
+    } catch (error) {
+      console.error('Error fetching past appointments:', error);
+    }
+  };
+
+  const sendPastAppointmentsToServer = async (appointments) => {
+    try {
+      const response = await fetch('http://localhost:3001/api/set-past-appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pastAppointments: appointments }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send past appointments to server');
+      }
+
+      console.log('Past appointments sent to server successfully');
+    } catch (error) {
+      console.error('Error sending past appointments to server:', error);
+    }
+  };
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -85,22 +148,79 @@ const SavedProfile = () => {
       }
 
       const data = await response.json();
-      
 
-      // Update chat history with user's response first, then AI's question
-      setChatHistory(prevHistory => [
-        ...prevHistory,
-        { type: 'user', text: data.translation },
-        { type: 'assistant', text: data.assistantResponse }
-      ]);
+      if (data.translation.toLowerCase().includes('end chat')) {
+        setIsChatEnded(true);
+        // Get the conclusion from the AI
+        const conclusionResponse = await fetch('http://localhost:3001/api/get-conclusion', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ chatHistory }),
+        });
 
-      isFirstInteractionRef.current = false;
+        if (!conclusionResponse.ok) {
+          throw new Error('Failed to get conclusion');
+        }
+
+        const conclusionData = await conclusionResponse.json();
+        
+        // Add the conclusion to chat history
+        setChatHistory(prevHistory => [
+          ...prevHistory,
+          { type: 'user', text: data.translation },
+          { type: 'assistant', text: conclusionData.conclusion }
+        ]);
+
+        // Send data to Supabase
+        await sendDataToSupabase(conclusionData.conclusion);
+      } else {
+        // Update chat history with user's response first, then AI's question
+        setChatHistory(prevHistory => [
+          ...prevHistory,
+          { type: 'user', text: data.translation },
+          { type: 'assistant', text: data.assistantResponse }
+        ]);
+      }
     } catch (error) {
       console.error('Error:', error);
       setChatHistory(prevHistory => [
         ...prevHistory,
         { type: 'assistant', text: 'Sorry, there was an error processing your speech.' }
       ]);
+    }
+  };
+
+  const sendDataToSupabase = async (conclusion) => {
+    try {
+      console.log('Attempting to send data to Supabase:', {
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        contactNumber: profile.contactNumber,
+        conclusion: conclusion
+      });
+
+      const { data, error } = await supabase
+        .from('patients')
+        .insert([
+          {
+            "first_name": profile.firstName,
+            "last_name": profile.lastName,
+            "contact": profile.contactNumber,
+            appointments: {
+              medical_history: JSON.stringify(profile),
+              QnA: chatHistory.map(msg => `${msg.type}: ${msg.text}`).join('\n'),
+              conclusion: conclusion
+            },
+            time_stamp_created: new Date().toISOString()
+          }
+        ]);
+
+      if (error) throw error;
+      console.log('Data added to Supabase successfully:', data);
+    } catch (error) {
+      console.error('Error sending data to Supabase:', error);
     }
   };
 
@@ -138,6 +258,19 @@ const SavedProfile = () => {
         ))}
       </ul>
     );
+  };
+
+  const handleNewChat = async () => {
+    // Send data to Supabase if there's a chat history
+    if (chatHistory.length > 1) {
+      const lastAIMessage = chatHistory.filter(msg => msg.type === 'assistant').pop();
+      const conclusion = lastAIMessage ? lastAIMessage.text : "No conclusion available.";
+      await sendDataToSupabase(conclusion);
+    }
+
+    // Clear chat history and start new chat
+    setChatHistory([{ type: 'assistant', text: "How are you doing today?" }]);
+    setIsChatEnded(false);
   };
 
   return (
@@ -199,6 +332,12 @@ const SavedProfile = () => {
             </div>
           ))}
         </div>
+        {isChatEnded && (
+          <p className="chat-ended-message">Chat ended. Data has been saved.</p>
+        )}
+        <button className="new-chat-button" onClick={handleNewChat}>
+          New Chat
+        </button>
       </div>
     </div>
   );

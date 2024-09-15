@@ -34,11 +34,17 @@ const openai = new OpenAI({
 // Chat history and patient history
 let chatHistory = [];
 let patientHistory = {};
+let pastAppointments = [];
 
 // New endpoint to set patient history
 app.post('/api/set-patient-history', (req, res) => {
   patientHistory = req.body;
-  res.status(200).json({ message: 'Patient history set successfully' });
+  res.json({ message: 'Patient history set successfully' });
+});
+
+app.post('/api/set-past-appointments', (req, res) => {
+  pastAppointments = req.body.pastAppointments;
+  res.json({ message: 'Past appointments set successfully' });
 });
 
 app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
@@ -80,11 +86,7 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
     const chatMessages = [
       {
         role: "system",
-        content: "You are a helpful medical assistant. People come to you with their medical issues. Your job is to use their medical history and description of what they are feeling to ask smart follow up questions, you have to ask one question at a time and carefully think about what question to ask next, to accurately diagnose what is wrong, when the user says end chat you are to generate notes for the doctor, sharing your precise summary of the patients account and question answer session",
-      },
-      {
-        role: "system",
-        content: `Patient History: ${JSON.stringify(patientHistory)}, in your questions and summary for the patient make sure you take in account their medical history and other information you have about them, your questions should be accurate, also address them by their first name ${patientHistory.firstName}`,
+        content: generateAIPrompt(patientHistory, pastAppointments, translatedText)
       },
       ...chatHistory,
       { role: "user", content: translatedText },
@@ -117,6 +119,53 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
     res.status(500).json({ error: 'An error occurred during processing.', details: error.message });
   }
 });
+
+app.post('/api/get-conclusion', async (req, res) => {
+  const { chatHistory } = req.body;
+  
+  try {
+    const conclusion = await generateConclusion(chatHistory, patientHistory, pastAppointments);
+    res.json({ conclusion });
+  } catch (error) {
+    console.error('Error generating conclusion:', error);
+    res.status(500).json({ error: 'Failed to generate conclusion' });
+  }
+});
+
+async function generateConclusion(chatHistory, patientHistory, pastAppointments) {
+  const prompt = generateAIPrompt(patientHistory, pastAppointments, "Generate a conclusion for this chat session.");
+  
+  const conclusionResponse = await openai.chat.completions.create({
+    messages: [
+      { role: "system", content: prompt },
+      ...chatHistory,
+    ],
+    model: "gpt-4o-mini",
+  });
+
+  return conclusionResponse.choices[0].message.content;
+}
+
+const generateAIPrompt = (patientHistory, pastAppointments, currentQuery) => {
+  return `
+    You are a medical assistant. You have the following information about the patient:
+
+    Patient's Medical History and other important information:
+    ${JSON.stringify(patientHistory)}
+
+    Past Appointments (most recent first):
+    ${pastAppointments.map(app => `
+      Date: ${app.time_stamp_created}
+      Medical History: ${app.medical_history}
+      Question & Answer session with an Ai model: ${app.QnA}
+      Conclusions of each session: ${app.conclusion}
+    `).join('\n')}
+
+    Current Query: ${currentQuery}
+
+    Based on this information, please ask specific diagnostic oriented questions aimed to narrow down and ultimately diagnose the patient's condition, you can stop after you have enough information to make a conclusion nut always ask at least 10 questions.
+  `;
+};
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);

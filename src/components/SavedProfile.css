@@ -125,3 +125,33 @@
 }
 
 /* Add any additional styles for your existing elements */
+
+.chat-ended-message {
+    text-align: center;
+    color: #4CAF50;
+    font-weight: bold;
+    margin-top: 20px;
+}
+
+.new-chat-button {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.new-chat-button:hover {
+    background-color: #45a049;
+}
+
+.new-chat-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.5);
+}
